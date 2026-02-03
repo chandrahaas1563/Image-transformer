@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Transformer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+        
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-magenta: #ff00ff;
+            --neon-yellow: #ffff00;
+            --deep-black: #0a0a0f;
+            --dark-gray: #1a1a24;
+            --mid-gray: #2a2a3a;
+            --text-primary: #e0e0ff;
+            --text-secondary: #a0a0c0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: linear-gradient(135deg, var(--deep-black) 0%, var(--dark-gray) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta), var(--neon-yellow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            animation: glow 3s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.5)); }
+            50% { filter: drop-shadow(0 0 40px rgba(255, 0, 255, 0.7)); }
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 3rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+        }
+        
+        .upload-section {
+            background: rgba(42, 42, 58, 0.5);
+            border: 2px dashed var(--neon-cyan);
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .upload-section:hover {
+            border-color: var(--neon-magenta);
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            color: var(--deep-black);
+            border: none;
+            padding: 1rem 3rem;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4);
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(255, 0, 255, 0.6);
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .controls {
+            background: rgba(26, 26, 36, 0.8);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-group {
+            margin-bottom: 2rem;
+        }
+        
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-size: 0.85rem;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--neon-cyan);
+            color: var(--text-primary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .control-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: var(--neon-magenta);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+        }
+        
+        .control-btn.active {
+            background: var(--neon-cyan);
+            color: var(--deep-black);
+            border-color: var(--neon-cyan);
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(0, 255, 255, 0.2);
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .slider-value {
+            min-width: 60px;
+            text-align: right;
+            font-weight: 500;
+            color: var(--neon-magenta);
+        }
+        
+        .process-btn {
+            background: linear-gradient(135deg, var(--neon-magenta), var(--neon-yellow));
+            color: var(--deep-black);
+            border: none;
+            padding: 1.2rem 4rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(255, 0, 255, 0.4);
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .process-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(255, 0, 255, 0.6);
+        }
+        
+        .process-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .image-card {
+            background: rgba(26, 26, 36, 0.8);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .image-card:hover {
+            border-color: var(--neon-magenta);
+            box-shadow: 0 10px 30px rgba(255, 0, 255, 0.3);
+            transform: translateY(-5px);
+        }
+        
+        .image-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .image-label {
+            padding: 1rem;
+            font-weight: 500;
+            color: var(--neon-cyan);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: var(--neon-cyan);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .error {
+            background: rgba(255, 0, 100, 0.1);
+            border: 1px solid rgba(255, 0, 100, 0.5);
+            color: #ff0064;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .upload-section {
+                padding: 2rem 1rem;
+            }
+            
+            .results {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Image Transformer</h1>
+        <p class="subtitle">Powered by Claude</p>
+        
+        <div class="upload-section">
+            <input type="file" id="imageUpload" accept="image/*" multiple>
+            <label for="imageUpload" class="upload-btn">Upload Images</label>
+            <p style="margin-top: 1rem; color: var(--text-secondary);">Support for multiple images • PNG, JPG, WebP</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label class="control-label">Rotation</label>
+                <div class="button-group">
+                    <button class="control-btn active" data-rotate="0">No Rotation</button>
+                    <button class="control-btn" data-rotate="90">Rotate 90°</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6;">
+                    <strong style="color: var(--neon-cyan);">Auto-Generated Variations:</strong><br>
+                    • Flip combinations (Normal, Horizontal, Vertical)<br>
+                    • Brightness: 40%, 50%, 60%, 70%<br>
+                    • Contrast: 40%, 50%, 60%, 70%<br>
+                    • Total: <span style="color: var(--neon-magenta); font-weight: 700;">48 variations per image</span>
+                </p>
+            </div>
+        </div>
+        
+        <button class="process-btn" id="processBtn" disabled>Generate All Variations</button>
+        
+        <div id="preview" class="results" style="margin-top: 2rem; display: none;">
+            <div style="grid-column: 1 / -1; text-align: center; padding: 1rem; color: var(--neon-cyan); font-size: 1.1rem;">
+                <strong>📸 Uploaded Images</strong>
+            </div>
+        </div>
+        
+        <button class="process-btn" id="downloadBtn" style="display: none; margin-top: 2rem; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-yellow));">📥 Download All Images as ZIP</button>
+        
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        let uploadedImages = [];
+        let selectedRotation = 0;
+        let generatedVariations = [];
+        
+        // Handle image upload
+        document.getElementById('imageUpload').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            uploadedImages = [];
+            
+            const previewDiv = document.getElementById('preview');
+            previewDiv.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 1rem; color: var(--neon-cyan); font-size: 1.1rem;"><strong>📸 Uploaded Images</strong></div>';
+            
+            for (const file of files) {
+                const reader = new FileReader();
+                const imageData = await new Promise((resolve) => {
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+                
+                uploadedImages.push({
+                    name: file.name,
+                    data: imageData.split(',')[1],
+                    mimeType: file.type,
+                    fullData: imageData
+                });
+                
+                // Add preview card
+                const previewCard = document.createElement('div');
+                previewCard.className = 'image-card';
+                previewCard.innerHTML = `
+                    <img src="${imageData}" alt="${file.name}">
+                    <div class="image-label">${file.name}</div>
+                `;
+                previewDiv.appendChild(previewCard);
+            }
+            
+            previewDiv.style.display = 'grid';
+            document.getElementById('processBtn').disabled = uploadedImages.length === 0;
+            
+            if (uploadedImages.length > 0) {
+                alert(`${uploadedImages.length} image(s) uploaded successfully!`);
+            }
+        });
+        
+        // Handle rotation buttons
+        document.querySelectorAll('[data-rotate]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-rotate]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedRotation = parseInt(btn.dataset.rotate);
+            });
+        });
+        
+        // Process images with all combinations
+        document.getElementById('processBtn').addEventListener('click', async () => {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="loading">🤖 Generating all variations... This may take a moment...</div>';
+            
+            try {
+                const allVariations = [];
+                
+                // Define all combinations
+                const flipOptions = [
+                    { name: 'Normal', value: null },
+                    { name: 'Horizontal', value: 'horizontal' },
+                    { name: 'Vertical', value: 'vertical' }
+                ];
+                
+                const brightnessLevels = [40, 50, 60, 70];
+                const contrastLevels = [40, 50, 60, 70];
+                
+                for (const image of uploadedImages) {
+                    // Generate all combinations
+                    for (const flip of flipOptions) {
+                        for (const brightness of brightnessLevels) {
+                            for (const contrast of contrastLevels) {
+                                const processedImage = await processImageLocally(
+                                    image.data,
+                                    image.mimeType,
+                                    brightness,
+                                    contrast,
+                                    flip.value,
+                                    selectedRotation
+                                );
+                                
+                                allVariations.push({
+                                    originalName: image.name,
+                                    processed: processedImage,
+                                    label: `${flip.name} | B:${brightness}% C:${contrast}%${selectedRotation > 0 ? ` | Rot:${selectedRotation}°` : ''}`
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                // Store variations globally
+                generatedVariations = allVariations;
+                
+                // Show download button
+                document.getElementById('downloadBtn').style.display = 'block';
+                
+                // Display results
+                displayResults(allVariations);
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        });
+        
+        async function processImageLocally(base64Data, mimeType, brightness, contrast, flip, rotation) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Handle rotation for canvas size
+                    if (rotation === 90 || rotation === 270) {
+                        canvas.width = img.height;
+                        canvas.height = img.width;
+                    } else {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                    }
+                    
+                    ctx.save();
+                    
+                    // Apply transformations
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    
+                    if (rotation) {
+                        ctx.rotate((rotation * Math.PI) / 180);
+                    }
+                    
+                    let scaleX = 1;
+                    let scaleY = 1;
+                    
+                    if (flip === 'horizontal' || flip === 'both') {
+                        scaleX = -1;
+                    }
+                    if (flip === 'vertical' || flip === 'both') {
+                        scaleY = -1;
+                    }
+                    
+                    ctx.scale(scaleX, scaleY);
+                    
+                    // Apply brightness and contrast filters
+                    const brightnessPercent = brightness;
+                    const contrastPercent = contrast;
+                    ctx.filter = `brightness(${brightnessPercent}%) contrast(${contrastPercent}%)`;
+                    
+                    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                    ctx.restore();
+                    
+                    resolve(canvas.toDataURL(mimeType));
+                };
+                img.src = `data:${mimeType};base64,${base64Data}`;
+            });
+        }
+        
+        // Download all images as ZIP
+        document.getElementById('downloadBtn').addEventListener('click', async () => {
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.textContent = '⏳ Creating ZIP file...';
+            downloadBtn.disabled = true;
+            
+            try {
+                const zip = new JSZip();
+                const imgFolder = zip.folder('processed_images');
+                
+                for (let i = 0; i < generatedVariations.length; i++) {
+                    const variation = generatedVariations[i];
+                    
+                    // Convert data URL to blob
+                    const base64Data = variation.processed.split(',')[1];
+                    const binaryData = atob(base64Data);
+                    const arrayBuffer = new Uint8Array(binaryData.length);
+                    
+                    for (let j = 0; j < binaryData.length; j++) {
+                        arrayBuffer[j] = binaryData.charCodeAt(j);
+                    }
+                    
+                    // Create filename
+                    const baseName = variation.originalName.split('.')[0];
+                    const extension = variation.originalName.split('.').pop();
+                    const sanitizedLabel = variation.label.replace(/[^a-z0-9]/gi, '_');
+                    const filename = `${baseName}_${sanitizedLabel}.${extension}`;
+                    
+                    imgFolder.file(filename, arrayBuffer);
+                }
+                
+                // Generate ZIP file
+                const content = await zip.generateAsync({ type: 'blob' });
+                
+                // Create download link
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `image_variations_${Date.now()}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                downloadBtn.textContent = '✅ Downloaded! Click to download again';
+                downloadBtn.disabled = false;
+                
+                setTimeout(() => {
+                    downloadBtn.textContent = '📥 Download All Images as ZIP';
+                }, 3000);
+                
+            } catch (error) {
+                alert('Error creating ZIP file: ' + error.message);
+                downloadBtn.textContent = '📥 Download All Images as ZIP';
+                downloadBtn.disabled = false;
+            }
+        });
+        
+        function displayResults(variations) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            // Add a header
+            const header = document.createElement('div');
+            header.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--neon-cyan); font-size: 1.2rem;';
+            header.innerHTML = `<strong>${variations.length} variations generated successfully!</strong>`;
+            resultsDiv.appendChild(header);
+            
+            variations.forEach(variation => {
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                card.innerHTML = `
+                    <img src="${variation.processed}" alt="${variation.label}">
+                    <div class="image-label">${variation.originalName}<br><small style="opacity: 0.8;">${variation.label}</small></div>
+                `;
+                resultsDiv.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
